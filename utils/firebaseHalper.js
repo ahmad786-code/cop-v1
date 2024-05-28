@@ -13,6 +13,8 @@ export const getFirebaseApp = () => {
     storageBucket: "cop-fiverr.appspot.com",
     messagingSenderId: "565132636797",
     appId: "1:565132636797:web:f6360b108098d59eceb714"
+
+    
   };
 
   // Initialize Firebase

@@ -13,11 +13,14 @@ import * as Font from 'expo-font';
 
 
 import { NavigationContainer, DarkTheme } from '@react-navigation/native';
-import AuthNavigator from './navigation/AuthNavigator';
+import AppNavigator from './navigation/AppNavigator';
 import { Provider } from 'react-redux';
 import { store } from './store/store';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+ 
+ 
+ 
 
 
 
@@ -29,7 +32,7 @@ SplashScreen.preventAutoHideAsync();
 export default function App() {
   const [appIsLoaded, setAppIsLoaded] = useState(false);
 
-  // AsyncStorage.clear()
+    //  AsyncStorage.clear()
 
   useEffect(() => {
 
@@ -65,11 +68,14 @@ export default function App() {
     return null;
   }
 
+  
+
+
   return (
      <Provider store={store}>
       <SafeAreaProvider style={styles.container} onLayout={onLayout}>
         <NavigationContainer theme={DarkTheme} >
-          <AuthNavigator />
+          <AppNavigator />
         </NavigationContainer>
 
 

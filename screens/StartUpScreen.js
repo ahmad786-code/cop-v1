@@ -1,4 +1,4 @@
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native'
+import { ActivityIndicator,  View } from 'react-native'
 import React, { useEffect } from 'react'
 import { Color } from '../theme'
 import AsyncStorage from '@react-native-async-storage/async-storage'

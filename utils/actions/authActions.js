@@ -1,9 +1,12 @@
 import { getFirebaseApp } from "../firebaseHalper";
-import { createUserWithEmailAndPassword, getAuth, signInWithEmailAndPassword, updateEmail, sendEmailVerification, updatePassword } from "firebase/auth";
+import { createUserWithEmailAndPassword, getAuth, signInWithEmailAndPassword, updateEmail, sendEmailVerification, updatePassword, reauthenticateWithCredential, EmailAuthProvider } from "firebase/auth";
 import { child, getDatabase, ref, set, update } from "firebase/database";
-import { authenticate , logout} from "../../store/authSlice";
+
+import { authenticate, logout } from "../../store/authSlice";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { getUserData } from "./userActions";
+
+import { getFirestore, doc, setDoc } from "firebase/firestore";
 
 export const signUp = (email,
     userName,
@@ -13,7 +16,7 @@ export const signUp = (email,
     return async dispatch => {
         const app = getFirebaseApp()
         const auth = getAuth(app)
-        console.log(auth.currentUser);
+
 
         try {
             const result = await createUserWithEmailAndPassword(auth, email, password)
@@ -40,27 +43,6 @@ export const signUp = (email,
     }
 }
 
-const createUser = async (email, userName, city, userId) => {
-    const userData = {
-        email,
-        userName,
-        city,
-        userId,
-        bio: "",
-        profilePicURL: "",
-        followers: [],
-        following: [],
-        Subscribers:[],
-        rank: 0,
-        NumberOfReports: 0,
-        signUpDate: new Date().toISOString()
-    }
-
-    const dbRef = ref(getDatabase())
-    const childRef = child(dbRef, `users/${userId}`)
-    await set(childRef, userData)
-    return userData
-}
 
 const saveDataToStorage = (token, userId, expiryDate) => {
     AsyncStorage.setItem("userData", JSON.stringify({ token, userId, expiryDate: expiryDate.toISOString() }))
@@ -69,7 +51,7 @@ const saveDataToStorage = (token, userId, expiryDate) => {
 
 export const login = (email, password) => {
     return async dispatch => {
-        const app = getFirebaseApp()
+        const app = getFirebaseApp();
         const auth = getAuth(app)
 
         try {
@@ -97,31 +79,78 @@ export const login = (email, password) => {
     }
 }
 
-export const userLogOut =   () => {
-return async dispatch =>  {
-    AsyncStorage.clear()
-    dispatch(logout())
-}
+export const userLogOut = () => {
+    return async dispatch => {
+        AsyncStorage.clear()
+        dispatch(logout())
+    }
 }
 
 
+const createUser = async (email, userName, city, userId) => {
+    const userData = {
+        email,
+        userName,
+        city,
+        userId,
+        bio: "",
+        profilePicURL: "",
+        followers: [],
+        following: [],
+        Subscribers: [],
+        rank: 0,
+        NumberOfReports: 0,
+        signUpDate: new Date().toISOString()
+    }
+
+    // const dbRef = ref(getDatabase());
+    // const childRef = child(dbRef, `users/${userId}`);
+    // await set(childRef, userData);
+    // return userData;
+    const app = getFirebaseApp();
+    const db = getFirestore(app);
+
+    const userRef = doc(db, "users", userId);
+    await setDoc(userRef, userData);
+    return userData;
+
+}
 
 export const updateUserData = async (userId, newData) => {
-     
+
+
     const dbRef = ref(getDatabase())
     const childRef = child(dbRef, `users/${userId}`)
-    await  update(childRef, newData)
+    await update(childRef, newData)
 }
 
-export const updateUserEmail = async (newEmail,password) => {
-    const auth =  getAuth()
-    const user = auth.currentUser;
+
+
+
+
+export const updateUserEmail = async (email, newEmail, password) => {
+    console.log(email, newEmail, password);
+    const app = getFirebaseApp()
+    const auth = getAuth(app)
+
     try {
-        // await updateEmail(user, newEmail);
-       await updatePassword(user, password)
-        
-        console.log("Email updated successfully!");
+        if (auth.currentUser === null) return;
+
+        const credential = EmailAuthProvider.credential(email, password);
+        await reauthenticateWithCredential(auth.currentUser, credential);
+        // Update the email after successful reauthentication
+        await updateEmail(auth.currentUser, newEmail);
+
+        // Send email verification to the new email
+        await sendEmailVerification(auth.currentUser);
+        console.log(
+            `A verification email has been sent to your new email address ${newEmail}!. Please verify your email to login.`
+        );
     } catch (error) {
-        console.error("Error updating email:", error);
+        console.error(error);
     }
-};
+
+}
+
+
+

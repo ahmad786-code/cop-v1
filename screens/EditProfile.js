@@ -1,19 +1,21 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { StyleSheet, TextInput, Text, View, ImageBackground, Image, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, } from 'react-native'
-
-import { getAuth } from 'firebase/auth'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
 import { Color, FontFamily, FontSize } from '../theme'
 
 import CityPicker from '../components/CityPicker'
 import CustomButton from '../components/CustomButton'
-import { useSelector } from 'react-redux'
-import { updateUserData, updateUserEmail } from '../utils/actions/authActions'
+import { useDispatch, useSelector } from 'react-redux'
+import { updateUserData,  updateUserEmail } from '../utils/actions/authActions'
 
 
 
 import ProfileImage from '../components/ProfileImage'
+import { updateLoginUserData } from '../store/authSlice'
+import { getFirebaseApp } from '../utils/firebaseHalper'
+import { getAuth, onAuthStateChanged, verifyBeforeUpdateEmail } from 'firebase/auth'
+
 
 
 
@@ -22,11 +24,12 @@ import ProfileImage from '../components/ProfileImage'
 
 
 const EditProfile = ({ navigation }) => {
+    const dispatch = useDispatch();
 
     const userData = useSelector(state => state.auth.userData)
-  
+    console.log( userData.city);
 
-
+ 
 
     const [inputs, setInputs] = useState({
         email: userData.email || "",
@@ -56,16 +59,20 @@ const EditProfile = ({ navigation }) => {
     };
 
 
-    const updateProfile = async () => {
+    const updateProfile =  async () => {
         const { email, userName, city, password } = inputs
+         
 
-        try {
-            await updateUserEmail(password);
-            await updateUserData(userData.userId, { email, userName, city })
+         try {
+                 
+              await  updateUserEmail( userData.email, email, password)
+              
+             await updateUserData(userData.userId, { email, userName, city })
+            dispatch(updateLoginUserData({newData: {email, userName, city,password}}));
         } catch (error) {
             console.log(error);
-        }
-
+          }
+      
     }
 
 
@@ -75,7 +82,7 @@ const EditProfile = ({ navigation }) => {
             <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
                 <ScrollView bounces={false} showsVerticalScrollIndicator={false}>
                     <SafeAreaView style={{ alignItems: 'center', marginTop: '20%' }}>
-                        <ProfileImage />
+                        <ProfileImage userId={userData.userId} uri={userData.profilePicURL} showEditButton={true} width={95} height={95}/>
                     </SafeAreaView>
 
 
@@ -96,13 +103,13 @@ const EditProfile = ({ navigation }) => {
                     <View style={styles.inputContainer}>
                         <Text style={styles.pickerLabel}>City</Text>
                         <View style={styles.picker}>
-                            {/* <CityPicker /> */}
+                           <CityPicker onChange={(value) => onChangeText('city', value)} />  
                         </View>
                     </View>
                     <View style={styles.inputContainer}>
                         <Text style={styles.inputLabel}>Password</Text>
                         <TouchableOpacity onPress={() => focusTextInput(passwordRef)} activeOpacity={1} style={styles.input}>
-                            <TextInput ref={passwordRef} style={{ color: Color.colorWhite }} placeholder='Enter Password' placeholderTextColor={Color.colorGray_100} />
+                            <TextInput  value={inputs.password} onChangeText={(value) => onChangeText('password', value)} ref={passwordRef} style={{ color: Color.colorWhite }} placeholder='Enter Password' placeholderTextColor={Color.colorGray_100} />
                         </TouchableOpacity>
                     </View>
                     <View style={styles.inputContainer}>

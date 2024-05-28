@@ -18,10 +18,10 @@ const CityPicker = ({label, onChange}) => {
           const citySnapshot = await getDocs(citiesCollection);
           const citiesData = citySnapshot.docs.map(doc => ({
               label: doc.data().name,  
-              value: doc.id, 
+              value: doc.name, 
               color:  Color.colorGray_100  
           }));
-          console.log("Fetched Cities:", citiesData);
+          
           setCities(citiesData);
       };
 

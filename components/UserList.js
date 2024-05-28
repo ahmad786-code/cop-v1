@@ -1,42 +1,46 @@
-import { StyleSheet, Text, View, Image } from 'react-native'
+import { StyleSheet, Text, View, Image, TouchableWithoutFeedback } from 'react-native'
 import React from 'react'
 import { Color, FontFamily, FontSize } from '../theme'
+import ProfileImage from './ProfileImage'
 
-const UserList = ({ user }) => {
+const UserList = ({profile, title, subTitle, onPress,type, isChecked, isGroupChat}) => {
+console.log(profile);
   return (
     <View style={styles.rootContainer}>
-       
-      <View style={{ width: '100%', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', columnGap: 12 }}>
-        {
-          user.type === 'group' ? (
-            <View>
-              <Image source={require('../assets/group.jpg')} style={{ width: 60, height: 60, borderRadius: 9, }} />
-              <View style={{ alignItems: 'flex-end', marginTop: -10 }}>
-                <View style={{ alignItems: 'center', justifyContent: 'center', width: 20, height: 20, borderRadius: 6, backgroundColor: Color.colorDarkslateblue, }}>
+      <TouchableWithoutFeedback onPress={onPress}>
+        <View style={{ width: '100%',  flexDirection: 'row', alignItems: 'center', columnGap: 12 }}>
+          
+         {isGroupChat  ?  
+              <View>
+                <Image source={{uri: profile}} style={{ width: 60, height: 60, borderRadius: 9, }} />
+                 
+                <View style={{ alignItems: 'flex-end', marginTop: -10 }}>
+                  <View style={{ alignItems: 'center', justifyContent: 'center', width: 20, height: 20, borderRadius: 6, backgroundColor: Color.colorDarkslateblue, }}>
 
-                  <Image style={{ width: 16, height: 16 }} source={require('../assets/vectors/GroupIcon.png')} />
+                    <Image style={{ width: 16, height: 16 }} source={require('../assets/vectors/GroupIcon.png')} />
 
+                  </View>
                 </View>
-              </View>
-            </View>
-          ) : (
-            <View>
-              <Image source={require('../assets/pexels-andrea-piacquadio-733872.jpg')} style={{ width: 60, height: 60, borderRadius: 100, }} />
-            </View>
-          )
-        }
-        <View >
-          <Text style={styles.userName}>{ user.title  }</Text>
-          <Text style={styles.userMessage}>What do you think?</Text>
-        </View>
+              </View> :
+          
+              <View>
 
-        <View style={{ alignItems: 'flex-end', marginLeft: 25 }}>
-          <Text style={{ color: Color.colorGray_100, marginBottom: 8 }}>05:51 am</Text>
-          <View style={{ justifyContent: 'center', alignItems: 'center', width: 22, height: 22, borderRadius: 50, backgroundColor: Color.colorDarkslateblue }}>
-            <Text style={{ color: Color.colorWhite, fontSize: 12, fontFamily: FontFamily.soraBold }}>10</Text>
+                <ProfileImage uri={profile} height={60} width={60} />
+              </View> }
+            {/* )
+          } */}
+          <View >
+            <Text style={styles.userName}>{title}</Text>
+            <Text style={styles.userMessage}>{subTitle}</Text>
           </View>
+
+          {type === "checkbox" && (
+            <View  style={{width:"100%", flex:3  }}>
+              <Text style={{...styles.addUser,  ...isChecked && styles.active}} >Add </Text>
+            </View>
+          )}
         </View>
-      </View>
+      </TouchableWithoutFeedback>
     </View>
   )
 }
@@ -49,7 +53,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 26
+    marginTop: 26,
+    
 
 
 
@@ -95,5 +100,12 @@ const styles = StyleSheet.create({
   notificationNumber: {
     color: Color.colorWhite,
     fontSize: FontSize.size_xsm,
+  },
+
+  addUser: {
+    color:Color.colorLightslateblue
+  },
+  active: {
+    color:Color.colorDarkslateblue
   }
 })

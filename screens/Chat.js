@@ -1,117 +1,190 @@
-import React, { useEffect, useState, useRef } from 'react'
+import React, { useEffect, useState, useRef, useCallback } from 'react'
 import { StyleSheet, Text, View, ImageBackground, Button, Pressable, Image, FlatList, TouchableOpacity, Keyboard, ScrollView, KeyboardAvoidingView, Platform } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import Bubble from '../components/Bubble'
 import { TextInput } from 'react-native'
 import { Color, FontFamily, FontSize } from '../theme'
+import { useSelector } from 'react-redux'
+import { createChat, sendTextMessage } from '../utils/actions/chatActions'
+
+import ProfileImage from '../components/ProfileImage'
+import { listenToUserStatus, monitorUserPresence } from '../utils/actions/percence'
+
+
+const Chat = (props) => {
+ 
+  const [chatUsers, setChatUsers] = useState([]);
+  const [otherUserStatus, setOtherUserStatus] = useState(null);
+  const userData = useSelector(state => state.auth.userData);
+ 
+  const [messageText, setMessageText] = useState("");
+  const [chatId, setChatId] = useState(props.route?.params?.chatId);
+
  
 
-const Chat = ({ navigation, route }) => {
-  const [messages, setMessages] = useState(Array.from({ length: 20 }, (_, index) => ({ id: index, text: `Message ${index + 1}` })));
-  const [showButton, setShowButton] = useState(false);
-  const [keyboardIsOpen, setKeyboardIsOpen] = useState(false);
-  const { item } = route.params;
+  const storedUsers = useSelector(state => state.users.storedUsers);
+  const storedChats = useSelector(state => state.chats.chatsData);
+  const chatMessages = useSelector(state => {
+    if (!chatId) return [];
 
-  const flatListRef = useRef();
+    const chatMessagesData = state.messages.messagesData[chatId];
 
-  const scrollToBottom = () => {
-  
-      flatListRef.current?.scrollToEnd({ animated: false });
-    
-  };
-  const handleScroll = ({ nativeEvent }) => {
-    const isCloseToBottom = nativeEvent.layoutMeasurement.height + nativeEvent.contentOffset.y >= nativeEvent.contentSize.height - 50;
-    setShowButton(!isCloseToBottom);
-  };
+
+
+    if (!chatMessagesData) return [];
+
+    const messageList = [];
+    for (const key in chatMessagesData) {
+      const message = chatMessagesData[key];
+
+      messageList.push({
+        key,
+        ...message
+      });
+    }
+
+    return messageList;
+  });
+
+
+  const chatData = (chatId && storedChats[chatId]) || props.route?.params?.newChatData;
+
+  const chatDataImage = useSelector(state => state.chats.chatsData[chatId])
+
+  const getChatTitleFromName = () => {
+    const otherUserId = chatUsers.find(uid => uid !== userData.userId);
+    const otherUserData = storedUsers[otherUserId];
+
+
+    if (otherUserData) {
+      return otherUserData.userName
+
+    }
+
+    return null;
+  }
+
+
+  useEffect(() => {
+    setChatUsers(chatData.users)
+  }, [chatUsers])
+  const sendMessage = useCallback(async () => {
+
+    try {
+      let id = chatId;
+      if (!id) {
+        // No chat Id. Create the chat
+        id = await createChat(userData.userId, props.route.params.newChatData);
+        setChatId(id);
+      }
+
+      await sendTextMessage(id, userData.userId, messageText);
+
+      setMessageText("");
+    } catch (error) {
+      console.log(error);
+
+    }
+  }, [messageText, chatId]);
+
+   
+
+
+  const chatTitle = chatData.chatName ?? getChatTitleFromName();
+
+  const otherUserId = chatData.users.find(uid => uid !== userData.userId);
+  const otherUser = storedUsers[otherUserId];
+  const image = otherUser.profilePicURL;
+
  
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
-
-  useEffect(() => {
-    const showListener = Keyboard.addListener('keyboardDidShow', () => {
-      setKeyboardIsOpen(true);
+useEffect(() => {
+  if (otherUserId) {
+    const unsubscribe = listenToUserStatus(otherUserId, (status) => {
+      setOtherUserStatus(status.online);
     });
-    const hideListener = Keyboard.addListener('keyboardDidHide', () => {
-      setKeyboardIsOpen(false);
-    });
+    return () => unsubscribe(); // Ensure the unsubscribe function is called
+  }
+}, [otherUserId]);
 
-    return () => {
-      showListener.remove();
-      hideListener.remove();
-    };
-  }, []);
   return (
+
     <ImageBackground source={require('../assets/img/Design.png')} resizeMode='cover' style={{ flex: 1 }}>
       <KeyboardAvoidingView style={{ flex: 1 }}>
         <View style={{ backgroundColor: Color.colorLightslateblue, height: 109, }}>
           <SafeAreaView>
             <View style={{ flexDirection: 'row', marginLeft: 15, alignItems: 'center', marginTop: 10 }}>
-              <TouchableOpacity style={{padding:10}} onPress={() => navigation.goBack()}>
+              <TouchableOpacity style={{ padding: 10 }} onPress={() => props.navigation.goBack()}>
                 <Image source={require('../assets/vectors/ChevronLeft.png')} />
               </TouchableOpacity>
 
-              <TouchableOpacity onPress={() => navigation.navigate(item.type === 'group' ? 'Group_Profile' : 'User_Profile')} style={{ flexDirection: 'row', marginLeft: 16, columnGap: 12, alignItems: 'center' }}>
-                {item.type === 'group' ? (
-                  <View>
-                    <Image source={require('../assets/group.jpg')} style={{ width: 40, height: 40, borderRadius: 9, }} />
-                    <View style={{ alignItems: 'flex-end', marginTop: -14 }}>
-                      <View style={{ alignItems: 'center', justifyContent: 'center', width: 20, height: 20, borderRadius: 6, backgroundColor: Color.colorDarkslateblue, }}>
-
-                        <Image style={{ width: 16, height: 16 }} source={require('../assets/vectors/GroupIcon.png')} />
-
-                      </View>
-                    </View>
-                  </View>
-
-                ) : (
-                  <View>
-                    <Image source={require('../assets/group.jpg')} style={{ width: 40, height: 40, borderRadius: 100, }} />
-                  </View>
-                )}
+              <TouchableOpacity onPress={() => chatData.isGroupChat ? props.navigation.navigate("Group_Profile",{chatDataImage, chatId}) : props.navigation.navigate('User_Profile', { uid: chatData.users.find(uid => uid !== userData.userId) })} style={{ flexDirection: 'row', marginLeft: 16, columnGap: 12, alignItems: 'center' }}>
 
                 <View>
-                  <Text style={{ color: '#fff', fontFamily: FontFamily.soraSemiBold, fontSize: 16 }}>{item.title}</Text>
-                  <Text style={{ color: Color.colorGray_100, fontFamily: FontFamily.soraRegular, fontSize: 12 }}>Online</Text>
+
+
+                  <ProfileImage uri={  image} width={40} height={40} />
+
+
+                </View>
+
+
+                <View>
+                  <Text style={{ color: '#fff', fontFamily: FontFamily.soraSemiBold, fontSize: 16 }}> {chatTitle}</Text>
+                  <Text style={{ color: Color.colorGray_100, fontFamily: FontFamily.soraRegular, fontSize: 12 }}>{otherUserStatus ? 'Online' : 'Offline'}</Text>
+                 
                 </View>
               </TouchableOpacity>
+              {chatData.isGroupChat && (
+                <TouchableOpacity style={{ flex: 1, alignSelf: 'flex-end', alignItems: 'flex-end', padding: 10 }} onPress={() => props.navigation.navigate("Group_Setting", { chatId })}>
+                  <Text style={{ color: '#fff' }}>Setting</Text>
+                </TouchableOpacity>
+              )}
             </View>
           </SafeAreaView>
         </View>
 
 
         <View style={{ flex: 1 }}>
+          {chatId && <FlatList
+            data={chatMessages}
+            renderItem={(itemData) => {
+              
+              // const message = itemData.item
+              const message = itemData.item;
+             
+              // const isOwnMessage = message.sentBy === userData.userId;
 
-          <FlatList
-            ref={flatListRef}
-            data={messages}
-            keyExtractor={item => item.id.toString()}
-            renderItem={({ item }) => {
-              return (<Bubble />)
-            }
-            }
-          
-            ListHeaderComponent={
-              <Text style={{ color: Color.colorGray_100, marginVertical: 23, alignSelf: 'center', fontWeight: '600', fontSize: 16 }}>
-                Today
-              </Text>
+              // const messageType = isOwnMessage ? "myMessage" : "theirMessage";
 
-            }
-            onScroll={handleScroll}
-            nestedScrollEnabled={true}
-            onContentSizeChange={ scrollToBottom}
-            onLayout={  scrollToBottom}
-           
-          />
+              const sender = message.sentBy && storedUsers[message.sentBy]
+             
+               
+              const name = sender && sender.userName
+              
+              const profilePicture = sender && sender.profilePicURL;
+              console.log("profie", profilePicture);
+               
+
+
+              const isOwnMessage = message.sentBy === userData.userId;
+
+              const messageType = isOwnMessage ? "myMessage" : "theirMessage";
+              
+              return <Bubble name={!chatData.isGroupChat || isOwnMessage ? undefined : name}  type={messageType}
+                text={message.text}  isGroupChat={chatData.isGroupChat} profile={profilePicture} />
+            }}
+          />}
+
         </View>
 
-        <KeyboardAvoidingView  behavior={Platform.OS === 'ios' ? 'padding' : 'height'}  >
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'}  >
           <View style={{ paddingHorizontal: 20, marginBottom: 40, marginTop: 18 }}>
             <View style={{ justifyContent: 'center', backgroundColor: Color.colorLightslateblue, height: 60, borderRadius: 12, paddingHorizontal: 15 }}>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                <TextInput style={{ color: Color.colorWhite, flex: 1, flexShrink: 1, marginRight: 10 }} multiline={true} placeholder='Write Message here' placeholderTextColor={Color.colorGray_100} />
+                <TextInput value={messageText}
+                  onChangeText={(text) => setMessageText(text)} style={{ color: Color.colorWhite, flex: 1, flexShrink: 1, marginRight: 10 }} multiline={true} placeholder='Write Message here' placeholderTextColor={Color.colorGray_100} />
 
-                <TouchableOpacity>
+                <TouchableOpacity onPress={sendMessage}>
                   <View style={{ backgroundColor: Color.colorDarkslateblue, width: 36, height: 36, alignItems: 'center', justifyContent: 'center', borderRadius: 100 }}>
                     <Image source={require('../assets/img/Send.png')} />
                   </View>
@@ -121,16 +194,15 @@ const Chat = ({ navigation, route }) => {
           </View>
         </KeyboardAvoidingView>
       </KeyboardAvoidingView>
-      {showButton && (
-     
-          <TouchableOpacity style={{padding:20,  backgroundColor: Color.colorDarkslateblue, width: 30, height: 30, alignItems: 'center', justifyContent: 'center', borderRadius: 100, position: 'absolute', bottom: 150, right: 10, zIndex: 999}} onPress={scrollToBottom}>
-            <Image source={require('../assets/vectors/ChevronDown.png')} />
-          </TouchableOpacity>
 
-       
-      )}
+
+      <TouchableOpacity style={{ padding: 20, backgroundColor: Color.colorDarkslateblue, width: 30, height: 30, alignItems: 'center', justifyContent: 'center', borderRadius: 100, position: 'absolute', bottom: 150, right: 10, zIndex: 999 }}  >
+        <Image source={require('../assets/vectors/ChevronDown.png')} />
+      </TouchableOpacity>
+
+
+
     </ImageBackground>
-
   )
 }
 
@@ -155,3 +227,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#ddd',
   },
 });
+
+
+ 
+
+ 

@@ -89,7 +89,7 @@ const BottomTabNavigator = () => {
 
             const isActive = routeName === 'Concert_Detail'
 
-            console.log(routeName);
+            
             return (
               <>
                 {focused ? (

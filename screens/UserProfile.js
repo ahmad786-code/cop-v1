@@ -1,14 +1,18 @@
-import { StyleSheet, Text, View, ImageBackground, Image, Dimensions } from 'react-native'
+import { StyleSheet, Text, View, ImageBackground, Image, Dimensions, TouchableOpacity } from 'react-native'
 import React from 'react'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { Color, FontFamily, FontSize } from '../theme'
 import CustomButton from '../components/CustomButton'
 import { useSelector } from 'react-redux'
+import ProfileImage from '../components/ProfileImage'
 
 
-const UserProfile = () => {
-    const userData = useSelector(state => state.auth.userData)
-    console.log(userData);
+const UserProfile = (props) => {
+    const storedUsers = useSelector(state => state.users.storedUsers);
+    const currentUser = storedUsers[props.route.params.uid]
+     
+    
+   const cUser = currentUser.userId
     const { width, height } = Dimensions.get('window');
 
 
@@ -21,13 +25,14 @@ const UserProfile = () => {
                             <Image source={require('../assets/app_icon/my-account/pp-background.png')} style={{ width: 140, height: 140 }} />
                         </View>
                         <View style={{position:'absolute', top:30, right:30,}}>
-                            <Image source={require('../assets/pexels-andrea-piacquadio-733872.jpg')} style={{ width: 95, height: 95, borderRadius: 100 }} />
+                           
+                            <ProfileImage uri={currentUser.profilePicURL} width={95} height={95}/>
                         </View>
                     </View>
                 </SafeAreaView>
 
 
-               <Text style={{ color: '#fff', alignSelf: 'center', fontSize: 20, fontFamily: FontFamily.soraRegular,marginTop:14.5 }}>@Arlene_McCoy</Text>
+               <Text style={{ color: '#fff', alignSelf: 'center', fontSize: 20, fontFamily: FontFamily.soraRegular,marginTop:14.5 }}>{currentUser.userName}</Text>
 
 
 
@@ -46,14 +51,14 @@ const UserProfile = () => {
                 <View style={{ flexDirection: 'row', columnGap: 27, alignItems: 'center', backgroundColor: Color.colorGray_300, borderRadius: 12, paddingHorizontal: 25, paddingVertical: '5%' }}>
                         <View style={{ flexDirection: 'column', alignItems: 'center' }}>
                             <Image source={require('../assets/img/Monster.png')} style={{ width: 88, height: 81 }} />
-                            <Text style={{ fontFamily: FontFamily.soraSemiBold, fontSize: 16, color: Color.colorWhite }}>10 RANK</Text>
+                            <Text style={{ fontFamily: FontFamily.soraSemiBold, fontSize: 16, color: Color.colorWhite }}>{currentUser.rank} RANK</Text>
                         </View>
 
                         <View style={{ flex: 1, flexDirection: 'column', justifyContent: 'center' }}>
                             <Text style={{ fontFamily: FontFamily.soraBold, fontSize: 20, color: Color.colorWhite }}>About</Text>
                             <View style={{ maxHeight: 100 }}>
-                                <Text style={{ fontFamily: FontFamily.soraRegular, fontSize: 14, color: Color.colorGray_100 }}> {userData.bio}
-
+                                <Text style={{ fontFamily: FontFamily.soraRegular, fontSize: 14, color: Color.colorGray_100 }}>  
+                                {currentUser.bio} 
                                 </Text>
                             </View>
                         </View>
@@ -66,11 +71,11 @@ const UserProfile = () => {
 
                     </View>
                     <View style={{ width: '40%' }} >
-                        <CustomButton title='Message' />
-
+                        <CustomButton title='Message'   onPress={() => props.navigation.navigate("Inbox", { selectedUserId: currentUser.userId })}/>
+                        
                     </View>
                 </View>  
-
+ 
 
 
             </ImageBackground>

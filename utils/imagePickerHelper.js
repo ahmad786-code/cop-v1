@@ -1,5 +1,8 @@
 import * as ImagePicker from 'expo-image-picker';
 import { Platform } from 'react-native';
+import { getFirebaseApp } from './firebaseHalper';
+import {getDownloadURL, getStorage, ref, uploadBytesResumable} from 'firebase/storage'
+import uuid from 'react-native-uuid';
 
 export const launchImagePicker = async () => {
     await checkMediaPermissions();
@@ -15,6 +18,40 @@ export const launchImagePicker = async () => {
         return result.assets[0].uri;
     }
 }
+
+
+export const uploadImageAsync = async (uri, isChatImage = false) => {
+
+    const app = getFirebaseApp()
+    const blob = await new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.onload = function () {
+            resolve(xhr.response);
+        };
+
+        xhr.onerror = function(e) {
+            console.log(e);
+            reject(new TypeError("Network request failed"));
+        };
+
+        xhr.responseType = "blob";
+        xhr.open("GET", uri, true);
+        xhr.send();
+    });
+
+    const pathFolder = isChatImage ? 'chatImages' : 'profilePics';
+    const fileName = `image_${uuid.v4()}.png`; 
+    const storageRef = ref(getStorage(app), `${pathFolder}/${fileName}`);
+
+    const uploadTask = uploadBytesResumable(storageRef, blob); 
+
+    await uploadTask; 
+    blob.close(); 
+
+    return await getDownloadURL(storageRef);  
+
+}
+
 
 const checkMediaPermissions = async () => {
     if (Platform.OS !== 'web') {

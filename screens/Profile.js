@@ -5,6 +5,7 @@ import { TouchableOpacity } from 'react-native-gesture-handler'
 import CustomButton from '../components/CustomButton'
 import { updateUserData, userLogOut } from '../utils/actions/authActions'
 import { useDispatch, useSelector } from 'react-redux'
+import ProfileImage from '../components/ProfileImage'
 
 const Profile = ({ navigation }) => {
     const dispach = useDispatch()
@@ -19,8 +20,18 @@ const Profile = ({ navigation }) => {
     };
 
     const updateBio = async () => {
-        await updateUserData(userData.userId, {bio})
+        if (userData && userData.userId) {
+            try {
+                await updateUserData(userData.userId, { bio });
+            } catch (error) {
+                console.error("Failed to update bio:", error);
+            }
+        } else {
+            console.error("Cannot update bio: userData is undefined or userId is missing.");
+        }
+         
     }
+
     const handleLogout = () => {
         dispach(userLogOut())
 
@@ -37,12 +48,13 @@ const Profile = ({ navigation }) => {
                                 <Image source={require('../assets/app_icon/my-account/pp-background.png')} style={{ width: 140, height: 140 }} />
                             </View>
                             <View style={{ position: 'absolute', top: 30, right: 30, }}>
-                                <Image source={require('../assets/pexels-andrea-piacquadio-733872.jpg')} style={{ width: 95, height: 95, borderRadius: 100 }} />
+                            <ProfileImage  uri={userData?.profilePicURL} width={95} height={95}/>
                             </View>
-                        </View>
+                        </View>  
+                        
                     </SafeAreaView>
 
-                    <Text style={{ color: '#fff', alignSelf: 'center', fontSize: 20, fontFamily: FontFamily.soraRegular }}>@Arlene_McCoy</Text>
+                    <Text style={{ color: '#fff', alignSelf: 'center', fontSize: 20, fontFamily: FontFamily.soraRegular }}>{userData?.userName}</Text>
 
                     <View style={styles.followerWrapper}>
                         <View style={{ marginTop: 20 }}>
